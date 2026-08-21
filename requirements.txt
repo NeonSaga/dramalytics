@@ -3,5 +3,5 @@ uvicorn[standard]
 httpx
 python-dotenv
 psycopg[binary]
-passlib[bcrypt]
+bcrypt
 PyJWT
