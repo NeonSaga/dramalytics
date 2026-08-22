@@ -54,3 +54,22 @@ def create_user(user):
         "email": row[2],
         "created_at": row[3]
     }
+
+def get_user_by_email(email):
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+    """SELECT id, username, password_hash, created_at
+        FROM users
+        WHERE email = %s;
+    """,
+    (email,)
+    )
+
+    user = cursor.fetchone()
+
+    cursor.close()
+    connection.close()
+
+    return user
