@@ -1,5 +1,32 @@
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends
+from schemas.rating_schema import RatingCreate, RatingUpdate
+from services.rating_service import create_rating, get_ratings_for_drama, update_rating, delete_rating
+from utils.auth import get_current_user
 
-class RatingCreate(BaseModel):
-    drama_id: int
-    rating: float
+router = APIRouter()
+
+@router.post("/ratings")
+def add_rating(
+    rating: RatingCreate,
+    current_user_id: int = Depends(get_current_user)
+):
+    return create_rating(current_user_id, rating)
+
+@router.get("/ratings/{drama_id}")
+def get_ratings(drama_id: int):
+    return get_ratings_for_drama(drama_id)
+
+@router.patch("/ratings/{drama_id}")
+def update_rating_route(
+    drama_id: int,
+    rating: RatingUpdate,
+    current_user_id: int = Depends(get_current_user)
+):
+    return update_rating(current_user_id, drama_id, rating)
+
+@router.delete("/ratings/{drama_id}")
+def delete_rating_route(
+    drama_id: int,
+    current_user_id: int = Depends(get_current_user)
+):
+    return delete_rating(current_user_id, drama_id)

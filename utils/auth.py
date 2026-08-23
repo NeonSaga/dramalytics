@@ -6,7 +6,6 @@ from utils.jwt import decode_access_token
 security = HTTPBearer()
 
 
-
 def get_current_user(
         credentials: HTTPAuthorizationCredentials = Depends(security)
 ):

@@ -1,78 +1,83 @@
 from database.connection import get_connection
 
-def create_rating(user_id, rating_data):
+def create_review(user_id, reviwe_data):
     connection = get_connection()
     cursor = connection.cursor()
 
     cursor.execute(
         """
-        INSERT INTO ratings(user_id, drama_id, score)
-        VALUES(%s,%s,%s)
-        RETURNING id, user_id, drama_id, score;
+        INSERT INTO reviews(user_id, drama_id, content)
+        VALUES (%s, %s, %s)
+        RETURNING id, user_id, drama_id, content;
         """,
-        (user_id, rating_data.drama_id, rating_data.score)
+        (user_id, reviwe_data.drama_id, reviwe_data.content)
     )
 
     row = cursor.fetchone()
 
     connection.commit()
+
     cursor.close()
     connection.close()
 
-    return { 
+    return {
         "id": row[0],
         "user_id": row[1],
         "drama_id": row[2],
-        "score": row[3]
+        "content": row[3]
+
     }
 
-def get_ratings_for_drama(drama_id):
+
+def get_reviews_from_drama(drama_id):
     connection = get_connection()
     cursor = connection.cursor()
 
     cursor.execute(
         """
-        SELECT id, user_id, drama_id, score
-        FROM ratings
-        WHERE drama_id = %s;
+        SELECT reviews.id, users.username, reviews.content, reviews.created_at
+        FROM reviews
+        JOIN users
+        ON reviews.user_id = users.id
+        WHERE reviews.drama_id = %s;
         """,
         (drama_id,)
     )
 
     rows = cursor.fetchall()
 
-    ratings = []
+    reviews = []
 
     for row in rows:
-        ratings.append({
+        reviews.append({
             "id": row[0],
-            "user_id": row[1],
-            "drama_id": row[2],
-            "score": row[3]
+            "username": row[1],
+            "content": row[2],
+            "created_at": row[3]
         })
-
 
 
     cursor.close()
     connection.close()
 
-    return ratings
+    return reviews
 
-def update_rating(user_id, drama_id, rating_data):
+def update_review(user_id, review_id, review_data):
     connection = get_connection()
     cursor = connection.cursor()
 
     cursor.execute(
         """
-        UPDATE ratings
-        SET score = %s
-        WHERE user_id = %s AND drama_id = %s
-        RETURNING id, user_id, drama_id, score;
+        UPDATE reviews
+        SET content = %s
+        WHERE id = %s
+        AND user_id = %s
+        RETURNING id, user_id, drama_id, content, created_at;
         """,
         (
-            rating_data.score,
-            user_id,
-            drama_id
+            review_data.content,
+            review_id,
+            user_id
         )
     )
 
@@ -87,20 +92,26 @@ def update_rating(user_id, drama_id, rating_data):
         "id": row[0],
         "user_id": row[1],
         "drama_id": row[2],
-        "score": row[3]
+        "content": row[3],
+        "created_at": row[4]
     }
 
-def delete_rating(user_id, drama_id):
+
+def delete_review(user_id, review_id):
     connection = get_connection()
     cursor = connection.cursor()
 
     cursor.execute(
         """
-        DELETE FROM ratings
-        WHERE user_id = %s AND drama_id = %s
-        RETURNING id, user_id, drama_id, score;
+        DELETE FROM reviews
+        WHERE id = %s
+        AND user_id = %s
+        RETURNING id, user_id, drama_id, content;
         """,
-        (user_id, drama_id)
+        (
+            review_id,
+            user_id
+        )
     )
 
     row = cursor.fetchone()
@@ -114,5 +125,5 @@ def delete_rating(user_id, drama_id):
         "id": row[0],
         "user_id": row[1],
         "drama_id": row[2],
-        "score": row[3]
+        "content": row[3]
     }
