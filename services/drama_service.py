@@ -22,7 +22,7 @@ def save_drama(slug):
     release_year = None
 
     if aired:
-        release_year = int(aired[-4])
+        release_year = int(aired[-4:])
 
     poster_url = drama.get("image")
 
