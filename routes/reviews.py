@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends
-
+from fastapi import Path
+from typing import Annotated
 from schemas.review_schema import ReviewCreate, ReviewUpdate
 from services.review_service import create_review
 from utils.auth import get_current_user
@@ -16,7 +17,7 @@ def add_reviews(
 
 
 @router.get("/reviews/{drama_id}")
-def get_reviews(drama_id: int):
+def get_reviews(drama_id: Annotated[int, Path(ge=1, le=2147483647)]):
     return get_reviews_from_drama(drama_id)
 
 @router.patch("/reviews/{review_id}")

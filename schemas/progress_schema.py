@@ -2,7 +2,7 @@ from pydantic import BaseModel, Field
 
 
 class ProgressCreate(BaseModel):
-    drama_id: int
+    drama_id: int = Field(ge=1, le=2147483647)
     episode_number: int = Field(ge=1)
 
 

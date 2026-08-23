@@ -1,25 +1,50 @@
 from database.connection import get_connection
+from fastapi import HTTPException
+from psycopg.errors import ForeignKeyViolation, UniqueViolation
 
 def create_rating(user_id, rating_data):
     connection = get_connection()
     cursor = connection.cursor()
 
-    cursor.execute(
-        """
-        INSERT INTO ratings(user_id, drama_id, score)
-        VALUES(%s,%s,%s)
-        RETURNING id, user_id, drama_id, score;
-        """,
-        (user_id, rating_data.drama_id, rating_data.score)
-    )
+    try:
+        cursor.execute(
+            """
+            INSERT INTO ratings(user_id, drama_id, score)
+            VALUES (%s, %s, %s)
+            RETURNING id, user_id, drama_id, score;
+            """,
+            (
+                user_id,
+                rating_data.drama_id,
+                rating_data.score
+            )
+        )
 
-    row = cursor.fetchone()
+        row = cursor.fetchone()
 
-    connection.commit()
-    cursor.close()
-    connection.close()
+        connection.commit()
 
-    return { 
+    except ForeignKeyViolation:
+        connection.rollback()
+
+        raise HTTPException(
+            status_code=404,
+            detail="Drama not found"
+        )
+
+    except UniqueViolation:
+        connection.rollback()
+
+        raise HTTPException(
+            status_code=409,
+            detail="You have already rated this drama"
+        )
+
+    finally:
+        cursor.close()
+        connection.close()
+
+    return {
         "id": row[0],
         "user_id": row[1],
         "drama_id": row[2],
@@ -94,21 +119,35 @@ def delete_rating(user_id, drama_id):
     connection = get_connection()
     cursor = connection.cursor()
 
-    cursor.execute(
-        """
-        DELETE FROM ratings
-        WHERE user_id = %s AND drama_id = %s
-        RETURNING id, user_id, drama_id, score;
-        """,
-        (user_id, drama_id)
-    )
+    try:
+        cursor.execute(
+            """
+            DELETE FROM ratings
+            WHERE user_id = %s
+            AND drama_id = %s
+            RETURNING id, user_id, drama_id, score;
+            """,
+            (
+                user_id,
+                drama_id
+            )
+        )
 
-    row = cursor.fetchone()
+        row = cursor.fetchone()
 
-    connection.commit()
+        if row is None:
+            connection.rollback()
 
-    cursor.close()
-    connection.close()
+            raise HTTPException(
+                status_code=404,
+                detail="Rating not found"
+            )
+
+        connection.commit()
+
+    finally:
+        cursor.close()
+        connection.close()
 
     return {
         "id": row[0],

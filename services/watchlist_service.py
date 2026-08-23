@@ -1,28 +1,48 @@
 from database.connection import get_connection
+from fastapi import HTTPException
+from psycopg.errors import ForeignKeyViolation, UniqueViolation
 
 def create_watchlist(user_id, watchlist_data):
     connection = get_connection()
     cursor = connection.cursor()
 
-    cursor.execute(
-        """
-        INSERT INTO watchlist(user_id, drama_id, status)
-        VALUES(%s, %s, %s)
-        RETURNING id, user_id, drama_id, status;
-        """,
-        (
-            user_id,
-            watchlist_data.drama_id,
-            watchlist_data.status
+    try:
+        cursor.execute(
+            """
+            INSERT INTO watchlist(user_id, drama_id, status)
+            VALUES (%s, %s, %s)
+            RETURNING id, user_id, drama_id, status;
+            """,
+            (
+                user_id,
+                watchlist_data.drama_id,
+                watchlist_data.status
+            )
         )
-    )
 
-    row = cursor.fetchone()
+        row = cursor.fetchone()
 
-    connection.commit()
+        connection.commit()
 
-    cursor.close()
-    connection.close()
+    except ForeignKeyViolation:
+        connection.rollback()
+
+        raise HTTPException(
+            status_code=404,
+            detail="Drama not found"
+        )
+
+    except UniqueViolation:
+        connection.rollback()
+
+        raise HTTPException(
+            status_code=409,
+            detail="This drama is already in your watchlist"
+        )
+
+    finally:
+        cursor.close()
+        connection.close()
 
     return {
         "id": row[0],
@@ -31,37 +51,86 @@ def create_watchlist(user_id, watchlist_data):
         "status": row[3]
     }
 
-def update_watchlist(user_id, drama_id, watchlist_data):
+def update_watchlist(user_id, drama_id, status):
     connection = get_connection()
     cursor = connection.cursor()
 
-    cursor.execute(
-        """
-        UPDATE watchlist
-        SET status = %s
-        WHERE user_id = %s AND drama_id = %s
-        RETURNING id, user_id, drama_id, status
-        """,
-        (
-            watchlist_data.status,
-            user_id, 
-            drama_id
+    try:
+        cursor.execute(
+            """
+            UPDATE watchlist
+            SET status = %s
+            WHERE user_id = %s
+            AND drama_id = %s
+            RETURNING id, user_id, drama_id, status;
+            """,
+            (
+                status,
+                user_id,
+                drama_id
+            )
         )
-    )
 
-    row = cursor.fetchone()
+        row = cursor.fetchone()
 
-    connection.commit()
+        if row is None:
+            connection.rollback()
 
-    cursor.close()
+            raise HTTPException(
+                status_code=404,
+                detail="Watchlist item not found"
+            )
 
-    connection.close()
+        connection.commit()
+
+    finally:
+        cursor.close()
+        connection.close()
 
     return {
         "id": row[0],
         "user_id": row[1],
         "drama_id": row[2],
         "status": row[3]
+    }
+
+
+def delete_watchlist(user_id, drama_id):
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    try:
+        cursor.execute(
+            """
+            DELETE FROM watchlist
+            WHERE user_id = %s
+            AND drama_id = %s
+            RETURNING id;
+            """,
+            (
+                user_id,
+                drama_id
+            )
+        )
+
+        row = cursor.fetchone()
+
+        if row is None:
+            connection.rollback()
+
+            raise HTTPException(
+                status_code=404,
+                detail="Watchlist item not found"
+            )
+
+        connection.commit()
+
+    finally:
+        cursor.close()
+        connection.close()
+
+    return {
+        "message": "Watchlist item deleted successfully"
     }
 
 def get_watchlist(user_id):
@@ -96,30 +165,3 @@ def get_watchlist(user_id):
 
     return watchlist
 
-def delete_watchlist(user_id, drama_id):
-    connection = get_connection()
-    cursor = connection.cursor()
-
-    cursor.execute(
-        """
-        DELETE FROM watchlist
-        WHERE user_id = %s AND drama_id = %s
-        RETURNING id, user_id, drama_id, status;
-        """,
-        (user_id, drama_id)
-    )
-
-    row = cursor.fetchone()
-
-    connection.commit()
-
-    cursor.close()
-
-    connection.close()
-
-    return{
-        "id": row[0],
-        "user_id": row[1],
-        "drama_id": row[2],
-        "status": row[3]
-    }

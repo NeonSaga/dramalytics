@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Path
+from typing import Annotated
 
 from schemas.progress_schema import ProgressCreate, ProgressUpdate
 from services.progress_service import (
@@ -22,7 +23,7 @@ def add_progress(
 
 @router.patch("/progress/{drama_id}")
 def update_progress_route(
-    drama_id: int,
+    drama_id: Annotated[int, Path(ge=1, le=2147483647)] ,
     progress: ProgressUpdate,
     current_user_id: int = Depends(get_current_user)
 ):

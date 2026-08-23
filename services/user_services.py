@@ -1,5 +1,7 @@
 from database.connection import get_connection
 from utils.password import hash_password
+from fastapi import HTTPException
+from psycopg.errors import UniqueViolation
 
 def get_all_users():
     connection = get_connection()
@@ -26,29 +28,43 @@ def get_all_users():
     connection.close()
     return users
 
-def create_user(user):
+def create_user(user_data):
     connection = get_connection()
     cursor = connection.cursor()
 
-    hashed_password = hash_password(user.password)
+    try:
+        hashed_password = hash_password(user_data.password)
 
-    cursor.execute(
-        """
-        INSERT INTO users(username, email, password_hash)
-        VALUES(%s, %s, %s)
-        RETURNING id, username, email, created_at;
-        """,
-        (user.username, user.email, hashed_password)
-    )
+        cursor.execute(
+            """
+            INSERT INTO users(username, email, password_hash)
+            VALUES (%s, %s, %s)
+            RETURNING id, username, email, created_at;
+            """,
+            (
+                user_data.username,
+                user_data.email,
+                hashed_password
+            )
+        )
 
-    row = cursor.fetchone()
+        row = cursor.fetchone()
 
-    connection.commit()
+        connection.commit()
 
-    cursor.close()
-    connection.close()
+    except UniqueViolation:
+        connection.rollback()
 
-    return{
+        raise HTTPException(
+            status_code=409,
+            detail="Username or email already exists"
+        )
+
+    finally:
+        cursor.close()
+        connection.close()
+
+    return {
         "id": row[0],
         "username": row[1],
         "email": row[2],

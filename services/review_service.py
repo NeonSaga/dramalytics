@@ -1,31 +1,55 @@
 from database.connection import get_connection
+from fastapi import HTTPException
+from psycopg.errors import ForeignKeyViolation, UniqueViolation
 
-def create_review(user_id, reviwe_data):
+def create_review(user_id, review_data):
     connection = get_connection()
     cursor = connection.cursor()
 
-    cursor.execute(
-        """
-        INSERT INTO reviews(user_id, drama_id, content)
-        VALUES (%s, %s, %s)
-        RETURNING id, user_id, drama_id, content;
-        """,
-        (user_id, reviwe_data.drama_id, reviwe_data.content)
-    )
+    try:
+        cursor.execute(
+            """
+            INSERT INTO reviews(user_id, drama_id, content)
+            VALUES (%s, %s, %s)
+            RETURNING id, user_id, drama_id, content, created_at;
+            """,
+            (
+                user_id,
+                review_data.drama_id,
+                review_data.content
+            )
+        )
 
-    row = cursor.fetchone()
+        row = cursor.fetchone()
 
-    connection.commit()
+        connection.commit()
 
-    cursor.close()
-    connection.close()
+    except ForeignKeyViolation:
+        connection.rollback()
+
+        raise HTTPException(
+            status_code=404,
+            detail="Drama not found"
+        )
+
+    except UniqueViolation:
+        connection.rollback()
+
+        raise HTTPException(
+            status_code=409,
+            detail="You have already reviewed this drama"
+        )
+
+    finally:
+        cursor.close()
+        connection.close()
 
     return {
         "id": row[0],
         "user_id": row[1],
         "drama_id": row[2],
-        "content": row[3]
-
+        "content": row[3],
+        "created_at": row[4]
     }
 
 
@@ -66,27 +90,37 @@ def update_review(user_id, review_id, review_data):
     connection = get_connection()
     cursor = connection.cursor()
 
-    cursor.execute(
-        """
-        UPDATE reviews
-        SET content = %s
-        WHERE id = %s
-        AND user_id = %s
-        RETURNING id, user_id, drama_id, content, created_at;
-        """,
-        (
-            review_data.content,
-            review_id,
-            user_id
+    try:
+        cursor.execute(
+            """
+            UPDATE reviews
+            SET content = %s
+            WHERE id = %s
+            AND user_id = %s
+            RETURNING id, user_id, drama_id, content, created_at;
+            """,
+            (
+                review_data.content,
+                review_id,
+                user_id
+            )
         )
-    )
 
-    row = cursor.fetchone()
+        row = cursor.fetchone()
 
-    connection.commit()
+        if row is None:
+            connection.rollback()
 
-    cursor.close()
-    connection.close()
+            raise HTTPException(
+                status_code=404,
+                detail="Review not found"
+            )
+
+        connection.commit()
+
+    finally:
+        cursor.close()
+        connection.close()
 
     return {
         "id": row[0],
@@ -106,7 +140,7 @@ def delete_review(user_id, review_id):
         DELETE FROM reviews
         WHERE id = %s
         AND user_id = %s
-        RETURNING id, user_id, drama_id, content;
+        RETURNING id;
         """,
         (
             review_id,
@@ -116,14 +150,21 @@ def delete_review(user_id, review_id):
 
     row = cursor.fetchone()
 
+    if row is None:
+        connection.rollback()
+        cursor.close()
+        connection.close()
+
+        raise HTTPException(
+            status_code=404,
+            detail="Review not found"
+        )
+
     connection.commit()
 
     cursor.close()
     connection.close()
 
     return {
-        "id": row[0],
-        "user_id": row[1],
-        "drama_id": row[2],
-        "content": row[3]
+        "message": "Review deleted successfully"
     }
