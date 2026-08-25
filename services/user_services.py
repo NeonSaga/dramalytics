@@ -76,7 +76,8 @@ def get_user_by_email(email):
     cursor = connection.cursor()
 
     cursor.execute(
-    """SELECT id, username, password_hash, created_at
+    """
+    SELECT id, username, password_hash, created_at
         FROM users
         WHERE LOWER(email) = LOWER(%s);
     """,

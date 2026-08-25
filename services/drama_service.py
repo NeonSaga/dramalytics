@@ -5,8 +5,18 @@ from database.connection import get_connection
 def search_drama(query):
     return search_dramas(query)
 
+
 def get_drama_details(slug):
-    return get_drama(slug)
+    drama = get_drama(slug)
+
+    # The drama ID is the first number in the slug
+    drama_id = int(slug.split("-")[0])
+
+    # Add our database-compatible ID to the response
+    drama["id"] = drama_id
+
+    return drama
+
 
 def save_drama(slug):
     drama = get_drama(slug)
@@ -15,7 +25,7 @@ def save_drama(slug):
 
     title = drama["title"]
 
-    if"(" in title:
+    if "(" in title:
         title = title.rsplit("(", 1)[0].strip()
 
     aired = drama.get("aired")
@@ -44,16 +54,14 @@ def save_drama(slug):
         cursor.close()
         connection.close()
 
-
-        return { 
-             "id": existing_drama[0],
+        return {
+            "id": existing_drama[0],
             "title": existing_drama[1],
             "release_year": existing_drama[2],
             "poster_url": existing_drama[3],
             "slug": existing_drama[4]
         }
 
-    
     cursor.execute(
         """
         INSERT INTO dramas(id, title, release_year, poster_url, slug)

@@ -59,11 +59,17 @@ def get_reviews_from_drama(drama_id):
 
     cursor.execute(
         """
-        SELECT reviews.id, users.username, reviews.content, reviews.created_at
+        SELECT
+            reviews.id,
+            reviews.user_id,
+            users.username,
+            reviews.content,
+            reviews.created_at
         FROM reviews
         JOIN users
         ON reviews.user_id = users.id
-        WHERE reviews.drama_id = %s;
+        WHERE reviews.drama_id = %s
+        ORDER BY reviews.created_at DESC;
         """,
         (drama_id,)
     )
@@ -75,11 +81,11 @@ def get_reviews_from_drama(drama_id):
     for row in rows:
         reviews.append({
             "id": row[0],
-            "username": row[1],
-            "content": row[2],
-            "created_at": row[3]
+            "user_id": row[1],
+            "username": row[2],
+            "content": row[3],
+            "created_at": row[4]
         })
-
 
     cursor.close()
     connection.close()

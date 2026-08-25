@@ -2,6 +2,7 @@ from database.connection import get_connection
 from fastapi import HTTPException
 from psycopg.errors import ForeignKeyViolation, UniqueViolation
 
+
 def create_watchlist(user_id, watchlist_data):
     connection = get_connection()
     cursor = connection.cursor()
@@ -51,25 +52,67 @@ def create_watchlist(user_id, watchlist_data):
         "status": row[3]
     }
 
-def update_watchlist(user_id, drama_id, status):
+
+def update_watchlist(user_id, drama_id, status=None, episodes_watched=None):
     connection = get_connection()
     cursor = connection.cursor()
 
     try:
-        cursor.execute(
-            """
-            UPDATE watchlist
-            SET status = %s
-            WHERE user_id = %s
-            AND drama_id = %s
-            RETURNING id, user_id, drama_id, status;
-            """,
-            (
-                status,
-                user_id,
-                drama_id
+        if status is not None and episodes_watched is not None:
+            cursor.execute(
+                """
+                UPDATE watchlist
+                SET status = %s,
+                    episodes_watched = %s
+                WHERE user_id = %s
+                AND drama_id = %s
+                RETURNING id, user_id, drama_id, status, episodes_watched;
+                """,
+                (
+                    status,
+                    episodes_watched,
+                    user_id,
+                    drama_id
+                )
             )
-        )
+
+        elif status is not None:
+            cursor.execute(
+                """
+                UPDATE watchlist
+                SET status = %s
+                WHERE user_id = %s
+                AND drama_id = %s
+                RETURNING id, user_id, drama_id, status, episodes_watched;
+                """,
+                (
+                    status,
+                    user_id,
+                    drama_id
+                )
+            )
+
+        elif episodes_watched is not None:
+            cursor.execute(
+                """
+                UPDATE watchlist
+                SET episodes_watched = %s
+                WHERE user_id = %s
+                AND drama_id = %s
+                RETURNING id, user_id, drama_id, status, episodes_watched;
+                """,
+                (
+                    episodes_watched,
+                    user_id,
+                    drama_id
+                )
+            )
+
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail="Nothing to update"
+            )
 
         row = cursor.fetchone()
 
@@ -91,7 +134,8 @@ def update_watchlist(user_id, drama_id, status):
         "id": row[0],
         "user_id": row[1],
         "drama_id": row[2],
-        "status": row[3]
+        "status": row[3],
+        "episodes_watched": row[4]
     }
 
 
@@ -133,13 +177,19 @@ def delete_watchlist(user_id, drama_id):
         "message": "Watchlist item deleted successfully"
     }
 
+
 def get_watchlist(user_id):
     connection = get_connection()
     cursor = connection.cursor()
 
     cursor.execute(
         """
-        SELECT watchlist.id, dramas.title, dramas.poster_url, watchlist.status
+        SELECT
+            watchlist.id,
+            watchlist.drama_id,
+            dramas.title,
+            dramas.poster_url,
+            watchlist.status
         FROM watchlist
         JOIN dramas
         ON watchlist.drama_id = dramas.id
@@ -155,13 +205,13 @@ def get_watchlist(user_id):
     for row in rows:
         watchlist.append({
             "id": row[0],
-            "title": row[1],
-            "poster_url": row[2],
-            "status": row[3]
-           })
+            "drama_id": row[1],
+            "title": row[2],
+            "poster_url": row[3],
+            "status": row[4]
+        })
 
     cursor.close()
     connection.close()
 
     return watchlist
-

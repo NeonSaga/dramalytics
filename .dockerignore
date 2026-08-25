@@ -1,10 +1,47 @@
-.venv/
-__pycache__/
-*.pyc
-.env
+# Git
 .git/
 .gitignore
+.github/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Node
+node_modules/
+frontend/node_modules/
+dist/
+frontend/dist/
+.vite/
+
+# IDE
 .vscode/
-*.db
-__pycache__
-**/__pycache__/
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local databases
+*.sqlite
+*.sqlite3
+
+# Temporary files
+*.tmp
+*.temp

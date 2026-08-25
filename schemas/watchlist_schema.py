@@ -5,4 +5,5 @@ class WatchlistCreate(BaseModel):
     status: str
 
 class WatchlistUpdate(BaseModel):
-    status: str
+    status: str | None = None
+    episodes_watched: int | None = Field(default=None, ge=0)
