@@ -39,6 +39,31 @@ rate dramas, and share reviews with the community.
 - Docker
 
 ## Architecture
+DRAMALYTICS
+
+User
+  |
+  v
+Web Interface
+  |
+  | HTTP Requests
+  v
+FastAPI Backend
+  |
+  +---- Authentication
+  |
+  +---- Application Services
+  |          |
+  |          v
+  |      PostgreSQL
+  |          |
+  |          +---- Users
+  |          +---- Dramas
+  |          +---- Watchlist
+  |          +---- Ratings
+  |          +---- Reviews
+  |
+  +---- External Drama API
 
 Users can create an account, log in, and access
 user-specific features.
@@ -59,16 +84,6 @@ their own ratings.
 Reviews
 
 Users can write reviews and manage their own reviews.
-
-Project Structure
-Dramalytics/
-├── backend/
-├── frontend/
-├── .github/
-├── .gitignore
-├── .dockerignore
-└── README.md
-AI Assistance
 
 AI tools were used during development as a learning and
 development aid.
