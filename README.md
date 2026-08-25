@@ -41,29 +41,40 @@ rate dramas, and share reviews with the community.
 ## Architecture
 DRAMALYTICS
 
-User
-  |
-  v
-Web Interface
-  |
-  | HTTP Requests
-  v
-FastAPI Backend
-  |
-  +---- Authentication
-  |
-  +---- Application Services
-  |          |
-  |          v
-  |      PostgreSQL
-  |          |
-  |          +---- Users
-  |          +---- Dramas
-  |          +---- Watchlist
-  |          +---- Ratings
-  |          +---- Reviews
-  |
-  +---- External Drama API
+## Architecture
+
+```text
+                    DRAMALYTICS
+                         |
+                         v
+                       USER
+                         |
+                         v
+                  WEB INTERFACE
+                         |
+                         v
+                  FASTAPI BACKEND
+                         |
+          +--------------+--------------+
+          |              |              |
+          v              v              v
+   AUTHENTICATION   APPLICATION    EXTERNAL DRAMA
+                    SERVICES            API
+                         |
+                         v
+                    POSTGRESQL
+                         |
+       +-----------------+-----------------+
+       |                 |                 |
+       v                 v                 v
+     USERS            DRAMAS          WATCHLIST
+                                          
+                         |
+              +----------+----------+
+              |                     |
+              v                     v
+           RATINGS               REVIEWS
+```
 
 Users can create an account, log in, and access
 user-specific features.
